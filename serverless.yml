@@ -1,4 +1,5 @@
-service: serverless-app
+service: lambda-app
+
 provider:
   name: aws
   runtime: nodejs18.x
@@ -6,23 +7,30 @@ provider:
   region: ap-southeast-1
   environment:
     NODE_ENV: production
-    # memorySize: 128
+
 functions:
   app:
-    handler: app.handler
-    layers:
-      - { Ref: CoreModulesLambdaLayer }
-      - { Ref: OptionalModulesLambdaLayer }
-    events: 
-      - http: 
+    handler: server.handler
+    fileSystemConfig:
+      localMountPath: /mnt/lambda
+      arn: arn:aws:elasticfilesystem:<...>:<accessPoint>
+    vpc:
+      securityGroupIds:
+        - sg-...
+      subnetIds:
+        - subnet-...
+        - subnet-...
+        - subnet-...
+    events:
+      - http:
           path: /
           method: ANY
           cors: true
-      - http: 
+      - http:
           path: /{proxy+}
           method: ANY
           cors: true
-
+          
 plugins:
   - serverless-webpack
   - serverless-prune-plugin
@@ -33,38 +41,17 @@ custom:
   webpack:
     webpackConfig: './webpack.config.js'
     includeModules: false
-    # includeModules:
-    #   forceInclude:
-    #     - aws-sdk
 
   prune:
     automatic: true
     number: 3
 
+
 package:
   individually: true
   patterns:
       - '!node_modules/**'
-    # - node_modules/**
-    # - .git/**
-    # - .vscode/**
-    # - .DS_Store
-    # - README.md
-    # - test/**
-    # - docs/**
-
-layers:
-  coreModules:
-    path: layers/core
-    compatibleRuntimes:
-      - nodejs18.x
-  optionalModules:
-    path: layers/optional
-    compatibleRuntimes:
-      - nodejs18.x
 
 # Add any custom environment variable file for serverless-dotenv-plugin
 dotenv:
   path: .env
-
-
